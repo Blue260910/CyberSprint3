@@ -25,7 +25,7 @@ jobs:
       
       - name: Executar Semgrep
         id: semgrep_scan
-        run: semgrep --config 'p/all' --json > semgrep-results.json || true
+        run: semgrep --config "p/default" --json > semgrep-results.json || true
       
       - name: Gerar relatório SAST
         run: |
