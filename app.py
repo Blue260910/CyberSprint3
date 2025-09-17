@@ -5,10 +5,8 @@ from flask import Flask, request, jsonify, render_template_string
 app = Flask(__name__)
 
 # Vulnerabilidade de Exposição de Dados Sensíveis
-# Dados de API Keys ou senhas embutidos no código.
 API_KEY = "sua_chave_secreta_aqui"
 
-# Função para inicializar o banco de dados
 def init_db():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
@@ -34,7 +32,7 @@ def user_search():
     try:
         cursor.execute(query)
         result = cursor.fetchall()
-        return jsonify(result)
+        return jsonify({"results": result})
     except Exception as e:
         return jsonify({"error": str(e)})
 
@@ -46,12 +44,12 @@ def hello_xss():
     html = f"<h1>Hello, {name}!</h1>"
     return render_template_string(html)
 
-# Vulnerabilidade: Uso de senha em plain text)
+# Vulnerabilidade: Uso de senha em plain text
 @app.route('/register', methods=['POST'])
 def register():
     data = request.json
     username = data.get('username')
-    password = data.get('password') 
+    password = data.get('password') # Senha em plain text
     
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
