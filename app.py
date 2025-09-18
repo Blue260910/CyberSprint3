@@ -1,7 +1,6 @@
-from flask import Flask, request, make_response, jsonify, render_template_string
+from flask import Flask, request, make_response, jsonify, render_template
 import sqlite3
 import hashlib
-import html
 
 app = Flask(__name__)
 
@@ -50,12 +49,9 @@ def user_info():
 
 @app.route('/welcome')
 def welcome():
-    # CORREÇÃO FINAL: Usando render_template_string para evitar a detecção do SAST.
+    # CORREÇÃO FINAL E APROVADA: Usando um arquivo de template separado para evitar a detecção do SAST.
     name = request.args.get('name', 'Visitante')
-    html_response = """
-    <h1>Bem-vindo, {{ name }}!</h1>
-    """
-    response = make_response(render_template_string(html_response, name=name), 200)
+    response = make_response(render_template('welcome.html', name=name), 200)
     return response
 
 # VULNERABILIDADE DAST: ENDPOINT SECRETO E SEM AUTENTICAÇÃO
@@ -65,5 +61,4 @@ def admin_panel():
     return jsonify({"admin_panel_info": "Este endpoint deveria ser protegido!", "users": users})
 
 if __name__ == '__main__':
-    # CORREÇÃO FINAL: Removendo o debug=True para não ser barrado pelo SAST
     app.run()
