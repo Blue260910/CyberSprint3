@@ -1,3 +1,21 @@
+# Job de notificação no Discord
+notify-discord:
+  name: Notificar no Discord
+  runs-on: ubuntu-latest
+  needs: dynamic-analysis
+  if: always()
+  steps:
+    - name: Notificar no Discord (Embed)
+      run: |
+        curl -H "Content-Type: application/json" \
+          -d '{
+            "embeds": [{
+              "title": "Pipeline finalizado",
+              "description": "✅ Build e testes concluídos!\n📄 Veja o relatório DAST no GitHub Actions.",
+              "color": 3066993
+            }]
+          }' \
+          ${{ secrets.DISCORD_WEBHOOK_URL }}
 name: CI/CD Security Pipeline
 
 on:
@@ -38,7 +56,6 @@ jobs:
           else
             echo "Nenhuma vulnerabilidade SAST encontrada." >> $GITHUB_STEP_SUMMARY
           fi
-
       - name: Publicar relatório SAST como artefato
         uses: actions/upload-artifact@v4
         with:
@@ -51,7 +68,6 @@ jobs:
             echo "Vulnerabilidades SAST encontradas. O build será bloqueado."
             exit 1
           fi
-
       - name: Executar Trivy (SCA)
         uses: aquasecurity/trivy-action@master
         with:
@@ -72,7 +88,6 @@ jobs:
             echo "Vulnerabilidades SCA críticas encontradas. O build será bloqueado."
             exit 1
           fi
-
   # Job 2: Análise Dinâmica
   dynamic-analysis:
     name: Scan DAST com OWASP ZAP
@@ -106,6 +121,6 @@ jobs:
       - name: Exibir o relatório DAST no log
         if: always()
         run: |
-          echo "----------------- INÍCIO DO RELATÓRIO DAST -----------------"
+          echo "RELATÓRIO DAST -----------------"
           cat dast-report.html
-          echo "------------------ FIM DO RELATÓRIO DAST -------------------"
+          echo "FIM DO RELATÓRIO DAST -------------------"
