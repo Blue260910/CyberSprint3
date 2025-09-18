@@ -98,7 +98,7 @@ jobs:
       
       - name: Executar OWASP ZAP (ataque automatizado)
         run: |
-          docker run -v ${{ github.workspace }}/zap-report:/zap/wrk/:rw ghcr.io/zaproxy/zaproxy zap-baseline.py -t http://localhost:8080 -r zap_report.html
+          docker run --network cyberSprint3_default -v ${{ github.workspace }}/zap-report:/zap/wrk/:rw ghcr.io/zaproxy/zaproxy zap-baseline.py -t http://app:8080 -r zap_report.html
       
       - name: Publicar relatório DAST como artefato
         uses: actions/upload-artifact@v4
