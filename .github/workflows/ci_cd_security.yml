@@ -1,21 +1,3 @@
-# Job de notificação no Discord
-notify-discord:
-  name: Notificar no Discord
-  runs-on: ubuntu-latest
-  needs: dynamic-analysis
-  if: always()
-  steps:
-    - name: Notificar no Discord (Embed)
-      run: |
-        curl -H "Content-Type: application/json" \
-          -d '{
-            "embeds": [{
-              "title": "Pipeline finalizado",
-              "description": "✅ Build e testes concluídos!\n📄 Veja o relatório DAST no GitHub Actions.",
-              "color": 3066993
-            }]
-          }' \
-          ${{ secrets.DISCORD_WEBHOOK_URL }}
 name: CI/CD Security Pipeline
 
 on:
@@ -56,6 +38,7 @@ jobs:
           else
             echo "Nenhuma vulnerabilidade SAST encontrada." >> $GITHUB_STEP_SUMMARY
           fi
+
       - name: Publicar relatório SAST como artefato
         uses: actions/upload-artifact@v4
         with:
@@ -68,6 +51,7 @@ jobs:
             echo "Vulnerabilidades SAST encontradas. O build será bloqueado."
             exit 1
           fi
+
       - name: Executar Trivy (SCA)
         uses: aquasecurity/trivy-action@master
         with:
@@ -88,7 +72,7 @@ jobs:
             echo "Vulnerabilidades SCA críticas encontradas. O build será bloqueado."
             exit 1
           fi
-  # Job 2: Análise Dinâmica
+
   dynamic-analysis:
     name: Scan DAST com OWASP ZAP
     runs-on: ubuntu-latest
@@ -98,7 +82,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      # CORREÇÃO: Usa o requirements.txt para garantir consistência
       - name: Instalar dependências do projeto
         run: pip install -r requirements.txt
       - name: Dar permissão de escrita para a pasta de trabalho
@@ -124,3 +107,28 @@ jobs:
           echo "RELATÓRIO DAST -----------------"
           cat dast-report.html
           echo "FIM DO RELATÓRIO DAST -------------------"
+
+  notify-discord:
+    name: Notificar no Discord
+    runs-on: ubuntu-latest
+    needs: dynamic-analysis
+    if: always()
+    steps:
+      - name: Notificar no Discord (Embed)
+        run: |
+          STATUS="✅ Build e testes concluídos!"
+          COLOR=3066993
+          if [[ "${{ needs.dynamic-analysis.result }}" != "success" ]]; then
+            STATUS="❌ Pipeline falhou!"
+            COLOR=15158332
+          fi
+
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "Pipeline CI/CD",
+                "description": "'"$STATUS"' \n📄 Veja os relatórios no GitHub Actions.",
+                "color": '"$COLOR"'
+              }]
+            }' \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
