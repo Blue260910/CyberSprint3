@@ -30,24 +30,22 @@ def login():
     password = request.form.get('password')
     db = sqlite3.connect(':memory:')
     cursor = db.cursor()
-    # Uso de consultas parametrizadas para evitar Injeção de SQL
     query = "SELECT * FROM users WHERE username = ? AND password = ?"
     try:
         cursor.execute(query, (username, password))
         user = cursor.fetchone()
         if user:
-            return "Login bem-sucedido!", 200
+            return render_template('login.html', message="Login bem-sucedido!"), 200
         else:
-            return "Credenciais inválidas.", 401
+            return render_template('login.html', message="Credenciais inválidas."), 401
     except Exception as e:
-        return str(e), 500
+        return render_template('login.html', message=str(e)), 500
 
 @app.route('/user_info')
 def user_info():
     user_id = request.args.get('id')
-    # Uso de hash seguro (sha256) em vez de MD5
     user_id_hash = hashlib.sha256(user_id.encode()).hexdigest()
-    return f"Hash SHA-256 do ID do usuário: {user_id_hash}"
+    return render_template('user_info.html', user_id_hash=user_id_hash)
 
 @app.route('/welcome')
 def welcome():
