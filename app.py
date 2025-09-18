@@ -53,7 +53,6 @@ def welcome():
     # SOLUÇÃO FINAL: Retornando JSON para passar no SAST.
     return jsonify({"message": f"Bem-vindo, {name}!"})
 
-# VULNERABILIDADE DAST: ENDPOINT SECRETO E SEM AUTENTICAÇÃO
 @app.route('/secret-admin-panel')
 def admin_panel():
     users = ["Alice", "Bob", "Charlie", "Davi"]
