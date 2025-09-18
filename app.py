@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import sqlite3
 import hashlib
 
@@ -22,7 +22,7 @@ init_db()
 
 @app.route('/')
 def home():
-    return "Bem-vindo à aplicação de teste de segurança! Este código deve passar na análise estática."
+    return render_template('home.html')
 
 @app.route('/login', methods=['POST'])
 def login():
