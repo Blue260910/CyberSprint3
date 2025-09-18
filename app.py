@@ -1,67 +1,88 @@
-import os
+from flask import Flask, request, make_response, jsonify
 import sqlite3
-from flask import Flask, request, jsonify, render_template_string
+import hashlib
+import html
 
 app = Flask(__name__)
 
-# Vulnerabilidade de Exposição de Dados Sensíveis
-API_KEY = "sua_chave_secreta_aqui"
-
+# Configuração do banco de dados em memória para o exemplo
 def init_db():
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(':memory:')
     cursor = conn.cursor()
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY,
-            username TEXT NOT NULL,
-            password TEXT NOT NULL
+        CREATE TABLE users (
+            username TEXT PRIMARY KEY,
+            password TEXT
         )
     ''')
+    # Adicionando um usuário de teste
+    cursor.execute("INSERT INTO users VALUES ('admin', 'senha123')")
     conn.commit()
     conn.close()
-
-# Vulnerabilidade: SQL Injection
-@app.route('/user_search')
-def user_search():
-    username = request.args.get('username')
     
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-    query = f"SELECT * FROM users WHERE username = '{username}'"
-    print(f"Executing query: {query}")
+# Chame a função para criar o banco de dados antes da aplicação rodar
+init_db()
+
+@app.route('/')
+def home():
+    return "Bem-vindo à aplicação de teste de segurança! Nenhuma falha SAST à vista."
+
+@app.route('/login', methods=['POST'])
+def login():
+    """
+    Função de login segura, usando consultas parametrizadas.
+    O SAST vai aprovar.
+    """
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    # CORREÇÃO SAST: Uso de consultas parametrizadas para prevenir SQL Injection
+    db = sqlite3.connect(':memory:')
+    cursor = db.cursor()
+    query = "SELECT * FROM users WHERE username = ? AND password = ?"
+    
     try:
-        cursor.execute(query)
-        result = cursor.fetchall()
-        return jsonify({"results": result})
+        cursor.execute(query, (username, password))
+        user = cursor.fetchone()
+        if user:
+            return "Login bem-sucedido!", 200
+        else:
+            return "Credenciais inválidas.", 401
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return str(e), 500
 
-# Vulnerabilidade: Cross-Site Scripting (XSS)
-@app.route('/hello')
-def hello_xss():
-    name = request.args.get('name', 'World')
-    
-    html = f"<h1>Hello, {name}!</h1>"
-    return render_template_string(html)
+@app.route('/user_info')
+def user_info():
+    user_id = request.args.get('id')
 
-# Vulnerabilidade: Uso de senha em plain text
-@app.route('/register', methods=['POST'])
-def register():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password') # Senha em plain text
+    # CORREÇÃO SAST: Uso de um hash mais seguro (SHA-256) no lugar de MD5
+    user_id_hash = hashlib.sha256(user_id.encode()).hexdigest()
+
+    return f"Hash SHA-256 do ID do usuário: {user_id_hash}"
+
+@app.route('/welcome')
+def welcome():
+    # CORREÇÃO SAST: Sanitização de input para prevenir XSS.
+    # A função html.escape substitui caracteres perigosos por entidades HTML.
+    name = request.args.get('name', 'Visitante')
+    safe_name = html.escape(name)
     
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-    
-    cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
-    conn.commit()
-    conn.close()
-    
-    return jsonify({"message": "User registered successfully."})
+    html_response = f"<h1>Bem-vindo, {safe_name}!</h1>"
+    response = make_response(html_response, 200)
+
+    # CORREÇÃO: Removemos o cabeçalho XSS-Protection desabilitado.
+    return response
+
+# VULNERABILIDADE DAST: ENDPOINT SECRETO E SEM AUTENTICAÇÃO
+# Este endpoint não é linkado em nenhuma parte do código.
+# O Semgrep não irá encontrá-lo, mas o ZAP (DAST) irá.
+@app.route('/secret-admin-panel')
+def admin_panel():
+    # Imagine que este endpoint deveria ser protegido por login
+    # Mas está acessível a qualquer um.
+    users = ["Alice", "Bob", "Charlie", "Davi"]
+    return jsonify({"admin_panel_info": "Este endpoint deveria ser protegido!", "users": users})
 
 
 if __name__ == '__main__':
-    init_db()
-    # Vulnerabilidade: Servidor de desenvolvimento em produção.
-    app.run(host='0.0.0.0', port=8080)
+    app.run(debug=True)
