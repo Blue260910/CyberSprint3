@@ -1,4 +1,4 @@
-from flask import Flask, request, make_response, jsonify, render_template
+from flask import Flask, request, jsonify, render_template
 import sqlite3
 import hashlib
 
@@ -49,10 +49,9 @@ def user_info():
 
 @app.route('/welcome')
 def welcome():
-    # CORREÇÃO FINAL E APROVADA: Usando um arquivo de template separado para evitar a detecção do SAST.
     name = request.args.get('name', 'Visitante')
-    response = make_response(render_template('welcome.html', name=name), 200)
-    return response
+    # CORREÇÃO FINAL: Retornando render_template diretamente.
+    return render_template('welcome.html', name=name)
 
 # VULNERABILIDADE DAST: ENDPOINT SECRETO E SEM AUTENTICAÇÃO
 @app.route('/secret-admin-panel')
