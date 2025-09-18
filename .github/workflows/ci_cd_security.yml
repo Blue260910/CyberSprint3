@@ -52,25 +52,24 @@ jobs:
             exit 1
           fi
 
-      - name: Instalar OWASP Dependency-Check
-        run: |
-          wget https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.2/dependency-check-8.4.2-release.zip
-          unzip dependency-check-8.4.2-release.zip
-      
-      - name: Executar OWASP Dependency-Check
-        run: |
-          ./dependency-check/bin/dependency-check.sh --scan . --format HTML --project "My App"
-      
+      - name: Executar Trivy (SCA)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          output: trivy-report.txt
+
       - name: Publicar relatório SCA como artefato
         uses: actions/upload-artifact@v4
         with:
-          name: owasp-dependency-report
-          path: dependency-check-report.html
-      
+          name: trivy-dependency-report
+          path: trivy-report.txt
+
       - name: Verificar resultados do SCA (bloqueio)
         run: |
-          if grep -q "VULNERABLE" dependency-check-report.html; then
-            echo "Vulnerabilidades SCA encontradas. O build será bloqueado."
+          if grep -q "CRITICAL" trivy-report.txt; then
+            echo "Vulnerabilidades SCA críticas encontradas. O build será bloqueado."
             exit 1
           fi
 
