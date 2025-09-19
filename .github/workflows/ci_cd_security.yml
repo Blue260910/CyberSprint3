@@ -120,12 +120,12 @@ jobs:
 
       - name: Resumo do DAST
         if: always()
-        run: |
-          echo "## Relatório DAST - OWASP ZAP" >> $GITHUB_STEP_SUMMARY
-          if grep -q "FAIL-NEW" dast-report.html; then
-            echo "⚠️ Vulnerabilidades encontradas" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "✅ Nenhuma vulnerabilidade encontrada" >> $GITHUB_STEP_SUMMARY
+          run: |
+            echo "## Relatório DAST - OWASP ZAP" >> $GITHUB_STEP_SUMMARY
+            if grep -q "FAIL-NEW" dast-report.html; then
+              echo "⚠️ Vulnerabilidades encontradas" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "✅ Nenhuma vulnerabilidade encontrada" >> $GITHUB_STEP_SUMMARY
 
       - name: Extrair resumo de alertas DAST
         id: extract
