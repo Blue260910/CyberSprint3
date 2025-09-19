@@ -123,13 +123,25 @@ jobs:
             echo "✅ Nenhuma vulnerabilidade encontrada" >> $GITHUB_STEP_SUMMARY
           fi
 
+      - name: Extrair resumo de alertas DAST
+        if: always()
+        run: |
+          HIGH=$(grep -A1 'High' dast-report.html | tail -n1 | sed 's/<[^>]*>//g' | tr -d ' ')
+          MEDIUM=$(grep -A1 'Medium' dast-report.html | tail -n1 | sed 's/<[^>]*>//g' | tr -d ' ')
+          LOW=$(grep -A1 'Low' dast-report.html | tail -n1 | sed 's/<[^>]*>//g' | tr -d ' ')
+          INFO=$(grep -A1 'Informational' dast-report.html | tail -n1 | sed 's/<[^>]*>//g' | tr -d ' ')
+          echo "HIGH=$HIGH" >> $GITHUB_ENV
+          echo "MEDIUM=$MEDIUM" >> $GITHUB_ENV
+          echo "LOW=$LOW" >> $GITHUB_ENV
+          echo "INFO=$INFO" >> $GITHUB_ENV
+
   notify-discord:
     name: Notificar no Discord
     runs-on: ubuntu-latest
     needs: dynamic-analysis
     if: always()
     steps:
-      - name: Notificar no Discord (Embed com link)
+      - name: Notificar no Discord (Embed com resumo DAST)
         run: |
           STATUS="✅ Build e testes concluídos!"
           COLOR=3066993
@@ -139,12 +151,13 @@ jobs:
           fi
 
           URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          DAST_SUMMARY="🚨 DAST: High: ${{ env.HIGH }} | 🟠 Medium: ${{ env.MEDIUM }} | 🟡 Low: ${{ env.LOW }} | 🔵 Info: ${{ env.INFO }}"
 
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
                 "title": "Pipeline CI/CD",
-                "description": "'"$STATUS"' \n📄 [Veja os relatórios aqui]('"$URL"')",
+                "description": "'"$STATUS"'\n'"$DAST_SUMMARY"'\n📄 [Veja os relatórios aqui]('"$URL"')",
                 "color": '"$COLOR"'
               }]
             }' \
