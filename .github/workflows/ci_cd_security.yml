@@ -37,6 +37,7 @@ jobs:
             echo "Relatório completo salvo como um artefato." >> $GITHUB_STEP_SUMMARY
           else
             echo "Nenhuma vulnerabilidade SAST encontrada." >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Publicar relatório SAST como artefato
         uses: actions/upload-artifact@v4
