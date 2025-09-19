@@ -148,22 +148,26 @@ jobs:
     steps:
       - name: Notificar no Discord (Embed com resumo DAST)
         run: |
-          STATUS="✅ Build e testes concluídos!"
-          COLOR=3066993
-          if [[ "${{ needs.dynamic-analysis.result }}" != "success" ]]; then
-            STATUS="❌ Pipeline falhou!"
-            COLOR=15158332
-          fi
+            STATUS="✅ Build e testes concluídos!"
+            COLOR=3066993
+            if [[ "${{ needs.dynamic-analysis.result }}" != "success" ]]; then
+              STATUS="❌ Pipeline falhou!"
+              COLOR=15158332
+            fi
 
-          URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          DAST_SUMMARY="🚨 DAST: High: ${{ needs.dynamic-analysis.outputs.HIGH }} | 🟠 Medium: ${{ needs.dynamic-analysis.outputs.MEDIUM }} | 🟡 Low: ${{ needs.dynamic-analysis.outputs.LOW }} | 🔵 Info: ${{ needs.dynamic-analysis.outputs.INFO }}"
+            URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            HIGH="${{ needs.dynamic-analysis.outputs.HIGH }}"
+            MEDIUM="${{ needs.dynamic-analysis.outputs.MEDIUM }}"
+            LOW="${{ needs.dynamic-analysis.outputs.LOW }}"
+            INFO="${{ needs.dynamic-analysis.outputs.INFO }}"
+            DAST_SUMMARY="🚨 DAST: Erros encontrados: \n🔴 High: $HIGH \n🟠 Medium: $MEDIUM \n🟡 Low: $LOW \n🔵 Info: $INFO"
 
-          curl -H "Content-Type: application/json" \
-            -d '{
-              "embeds": [{
-                "title": "Pipeline CI/CD",
-                "description": "'"$STATUS"'\n'"$DAST_SUMMARY"'\n📄 [Veja os relatórios aqui]('"$URL"')",
-                "color": '"$COLOR"'
-              }]
-            }' \
-            ${{ secrets.DISCORD_WEBHOOK_URL }}
+            curl -H "Content-Type: application/json" \
+              -d '{
+                "embeds": [{
+                  "title": "Pipeline CI/CD",
+                  "description": "'"$STATUS"'\n"'"$DAST_SUMMARY"'\n📄 [Veja os relatórios aqui]('"$URL"')",
+                  "color": '"$COLOR"'
+                }]
+              }' \
+              ${{ secrets.DISCORD_WEBHOOK_URL }}
