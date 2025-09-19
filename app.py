@@ -30,16 +30,13 @@ def login():
     password = request.form.get('password')
     db = sqlite3.connect(':memory:')
     cursor = db.cursor()
-    query = "SELECT * FROM users WHERE username = ? AND password = ?"
-    try:
-        cursor.execute(query, (username, password))
-        user = cursor.fetchone()
-        if user:
-            return render_template('login.html', message="Login bem-sucedido!"), 200
-        else:
-            return render_template('login.html', message="Credenciais inválidas."), 401
-    except Exception as e:
-        return render_template('login.html', message=str(e)), 500
+    query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
+    cursor.execute(query)
+    user = cursor.fetchone()
+    if user:
+        return render_template('login.html', message="Login bem-sucedido!"), 200
+    else:
+        return render_template('login.html', message="Credenciais inválidas."), 401
 
 @app.route('/user_info')
 def user_info():

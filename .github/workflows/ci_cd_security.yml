@@ -82,10 +82,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+
       - name: Instalar dependências do projeto
         run: pip install -r requirements.txt
+
       - name: Dar permissão de escrita para a pasta de trabalho
         run: chmod -R 777 .
+
       - name: Iniciar aplicação Flask e aguardar
         run: |
           echo "Iniciando servidor Flask..."
@@ -93,6 +96,7 @@ jobs:
           echo "Aguardando o servidor ficar pronto na porta 5000..."
           timeout 30s bash -c 'until curl -s http://localhost:5000 > /dev/null; do echo "Aguardando..." && sleep 1; done'
           echo "Servidor está pronto!"
+
       - name: Executar Scan DAST com ZAP via Docker
         run: |
           docker run \
@@ -101,12 +105,23 @@ jobs:
             --workdir /zap/wrk \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-baseline.py -t http://localhost:5000 -r dast-report.html || true
-      - name: Exibir o relatório DAST no log
+
+      - name: Publicar relatório DAST como artefato
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-report
+          path: dast-report.html
+
+      - name: Resumo do DAST
         if: always()
         run: |
-          echo "RELATÓRIO DAST -----------------"
-          cat dast-report.html
-          echo "FIM DO RELATÓRIO DAST -------------------"
+          echo "## Relatório DAST - OWASP ZAP" >> $GITHUB_STEP_SUMMARY
+          if grep -q "FAIL-NEW" dast-report.html; then
+            echo "⚠️ Vulnerabilidades encontradas" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Nenhuma vulnerabilidade encontrada" >> $GITHUB_STEP_SUMMARY
+          fi
 
   notify-discord:
     name: Notificar no Discord
@@ -114,7 +129,7 @@ jobs:
     needs: dynamic-analysis
     if: always()
     steps:
-      - name: Notificar no Discord (Embed)
+      - name: Notificar no Discord (Embed com link)
         run: |
           STATUS="✅ Build e testes concluídos!"
           COLOR=3066993
@@ -123,11 +138,13 @@ jobs:
             COLOR=15158332
           fi
 
+          URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
                 "title": "Pipeline CI/CD",
-                "description": "'"$STATUS"' \n📄 Veja os relatórios no GitHub Actions.",
+                "description": "'"$STATUS"' \n📄 [Veja os relatórios aqui]('"$URL"')",
                 "color": '"$COLOR"'
               }]
             }' \
