@@ -22,11 +22,11 @@ jobs:
       # --- Tarefa 1: SAST (Semgrep) ---
       - name: Configurar Semgrep
         run: pip install semgrep
-
+    
       - name: Executar Semgrep
         id: semgrep_scan
         run: semgrep --config "p/default" --exclude-rule "python.flask.security.audit.direct-template-output.direct-template-output" --json > semgrep-results.json || true
-
+      
       - name: Gerar relatório SAST
         run: |
           echo "## Relatório de Análise SAST - Semgrep" >> $GITHUB_STEP_SUMMARY
@@ -38,7 +38,6 @@ jobs:
           else
             echo "Nenhuma vulnerabilidade SAST encontrada." >> $GITHUB_STEP_SUMMARY
           fi
-
       - name: Publicar relatório SAST como artefato
         uses: actions/upload-artifact@v4
         with:
@@ -51,7 +50,6 @@ jobs:
             echo "Vulnerabilidades SAST encontradas. O build será bloqueado."
             exit 1
           fi
-
       - name: Executar Trivy (SCA)
         uses: aquasecurity/trivy-action@master
         with:
@@ -72,16 +70,10 @@ jobs:
             echo "Vulnerabilidades SCA críticas encontradas. O build será bloqueado."
             exit 1
           fi
-
   dynamic-analysis:
     name: Scan DAST com OWASP ZAP
     runs-on: ubuntu-latest
     needs: sast-sca
-    outputs:
-      HIGH: ${{ steps.extract.outputs.HIGH }}
-      MEDIUM: ${{ steps.extract.outputs.MEDIUM }}
-      LOW: ${{ steps.extract.outputs.LOW }}
-      INFO: ${{ steps.extract.outputs.INFO }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -101,7 +93,6 @@ jobs:
           echo "Aguardando o servidor ficar pronto na porta 5000..."
           timeout 30s bash -c 'until curl -s http://localhost:5000 > /dev/null; do echo "Aguardando..." && sleep 1; done'
           echo "Servidor está pronto!"
-
       - name: Executar Scan DAST com ZAP via Docker
         run: |
           docker run \
@@ -110,7 +101,6 @@ jobs:
             --workdir /zap/wrk \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-baseline.py -t http://localhost:5000 -r dast-report.html || true
-
       - name: Publicar relatório DAST como artefato
         if: always()
         uses: actions/upload-artifact@v4
@@ -120,54 +110,34 @@ jobs:
 
       - name: Resumo do DAST
         if: always()
-          run: |
-            echo "## Relatório DAST - OWASP ZAP" >> $GITHUB_STEP_SUMMARY
-            if grep -q "FAIL-NEW" dast-report.html; then
-              echo "⚠️ Vulnerabilidades encontradas" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "✅ Nenhuma vulnerabilidade encontrada" >> $GITHUB_STEP_SUMMARY
-
-      - name: Extrair resumo de alertas DAST
-        id: extract
-        if: always()
         run: |
-          HIGH=$(grep -A1 'High' dast-report.html | tail -n1 | sed 's/<[^>]*>//g' | tr -d ' ')
-          MEDIUM=$(grep -A1 'Medium' dast-report.html | tail -n1 | sed 's/<[^>]*>//g' | tr -d ' ')
-          LOW=$(grep -A1 'Low' dast-report.html | tail -n1 | sed 's/<[^>]*>//g' | tr -d ' ')
-          INFO=$(grep -A1 'Informational' dast-report.html | tail -n1 | sed 's/<[^>]*>//g' | tr -d ' ')
-          echo "::set-output name=HIGH::$HIGH"
-          echo "::set-output name=MEDIUM::$MEDIUM"
-          echo "::set-output name=LOW::$LOW"
-          echo "::set-output name=INFO::$INFO"
-
+          echo "## Relatório DAST - OWASP ZAP" >> $GITHUB_STEP_SUMMARY
+          if grep -q "FAIL-NEW" dast-report.html; then
+            echo "⚠️ Vulnerabilidades encontradas" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Nenhuma vulnerabilidade encontrada" >> $GITHUB_STEP_SUMMARY
+          fi
   notify-discord:
     name: Notificar no Discord
     runs-on: ubuntu-latest
     needs: dynamic-analysis
     if: always()
     steps:
-      - name: Notificar no Discord (Embed com resumo DAST)
+      - name: Notificar no Discord (Embed com link)
         run: |
-            STATUS="✅ Build e testes concluídos!"
-            COLOR=3066993
-            if [[ "${{ needs.dynamic-analysis.result }}" != "success" ]]; then
-              STATUS="❌ Pipeline falhou!"
-              COLOR=15158332
-            fi
-
-            URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            HIGH="${{ needs.dynamic-analysis.outputs.HIGH }}"
-            MEDIUM="${{ needs.dynamic-analysis.outputs.MEDIUM }}"
-            LOW="${{ needs.dynamic-analysis.outputs.LOW }}"
-            INFO="${{ needs.dynamic-analysis.outputs.INFO }}"
-            DAST_SUMMARY="🚨 DAST: Erros encontrados: \n🔴 High: $HIGH \n🟠 Medium: $MEDIUM \n🟡 Low: $LOW \n🔵 Info: $INFO"
-
-            curl -H "Content-Type: application/json" \
-              -d '{
-                "embeds": [{
-                  "title": "Pipeline CI/CD",
-                  "description": "'"$STATUS"'\n"'"$DAST_SUMMARY"'\n📄 [Veja os relatórios aqui]('"$URL"')",
-                  "color": '"$COLOR"'
-                }]
-              }' \
-              ${{ secrets.DISCORD_WEBHOOK_URL }}
+          STATUS="✅ Build e testes concluídos!"
+          COLOR=3066993
+          if [[ "${{ needs.dynamic-analysis.result }}" != "success" ]]; then
+            STATUS="❌ Pipeline falhou!"
+            COLOR=15158332
+          fi
+          URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "Pipeline CI/CD",
+                "description": "'"$STATUS"' \n📄 [Veja os relatórios aqui]('"$URL"')",
+                "color": '"$COLOR"'
+              }]
+            }' \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
