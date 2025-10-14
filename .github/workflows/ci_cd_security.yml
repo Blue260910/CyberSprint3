@@ -20,14 +20,22 @@ jobs:
         run: sudo apt-get install -y jq
 
       # --- Tarefa 0: Testes unitários ---
-      - name: Instalar pytest
-        run: pip install pytest
+      - name: Configurar variáveis de ambiente para CI
+        run: |
+          if [ -f .env.github ]; then
+            cp .env.github .env
+            echo "Arquivo .env criado para CI/CD"
+          fi
 
-      - name: Install Flask
-        run: pip install flask
+      - name: Instalar dependências
+        run: |
+          pip install pytest flask pyjwt python-dotenv
 
       - name: Executar testes unitários
-        run: pytest test_ssdlc.py
+        env:
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY || 'test_secret_key_for_github_actions_32chars' }}
+          FLASK_TESTING: 'true'
+        run: pytest test_ssdlc.py -v
 
       # --- Tarefa 1: SAST (Semgrep) ---
       - name: Configurar Semgrep
@@ -90,13 +98,25 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Configurar variáveis de ambiente para DAST
+        run: |
+          if [ -f .env.github ]; then
+            cp .env.github .env
+            echo "Arquivo .env criado para DAST"
+          fi
+
       - name: Instalar dependências do projeto
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install python-dotenv
 
       - name: Dar permissão de escrita para a pasta de trabalho
         run: chmod -R 777 .
 
       - name: Iniciar aplicação Flask e aguardar
+        env:
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY || 'test_secret_key_for_github_actions_32chars' }}
+          FLASK_TESTING: 'true'
         run: |
           echo "Iniciando servidor Flask..."
           python app.py &
