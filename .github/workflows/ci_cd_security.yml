@@ -19,6 +19,13 @@ jobs:
       - name: Instalar jq
         run: sudo apt-get install -y jq
 
+      # --- Tarefa 0: Testes unitários ---
+      - name: Instalar pytest
+        run: pip install pytest
+
+      - name: Executar testes unitários
+        run: pytest test_ssdlc.py
+
       # --- Tarefa 1: SAST (Semgrep) ---
       - name: Configurar Semgrep
         run: pip install semgrep
