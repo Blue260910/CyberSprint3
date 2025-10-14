@@ -2,3 +2,4 @@ Flask==2.3.2
 gunicorn
 pytest
 pyjwt
+python-dotenv==1.0.0
