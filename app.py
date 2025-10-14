@@ -17,7 +17,6 @@ app = Flask(__name__)
 
 # Configuração flexível: usa env var se disponível, senão fallback para teste
 SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'sua_chave_secreta_superforte')
-TESTING_MODE = os.getenv('FLASK_TESTING', 'false').lower() == 'true'
 
 # Configuração do banco de dados em memória para o exemplo
 def init_db():
