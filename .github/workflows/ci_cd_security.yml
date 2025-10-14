@@ -23,6 +23,9 @@ jobs:
       - name: Instalar pytest
         run: pip install pytest
 
+      - name: Install Flask
+        run: pip install flask
+
       - name: Executar testes unitários
         run: pytest test_ssdlc.py
 
