@@ -2,10 +2,22 @@ from flask import Flask, request, jsonify, render_template
 import sqlite3
 import hashlib
 import jwt, datetime
+import os
 from functools import wraps
 
+# Tenta carregar arquivo .env se disponível
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # Se python-dotenv não estiver instalado, continua sem ele
+    pass
+
 app = Flask(__name__)
-SECRET_KEY = 'sua_chave_secreta_superforte'
+
+# Configuração flexível: usa env var se disponível, senão fallback para teste
+SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'sua_chave_secreta_superforte')
+TESTING_MODE = os.getenv('FLASK_TESTING', 'true').lower() == 'true'
 
 # Configuração do banco de dados em memória para o exemplo
 def init_db():
